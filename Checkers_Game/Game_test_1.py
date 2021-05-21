@@ -1,11 +1,12 @@
 from PyQt5 import QtCore, QtGui, QtWidgets, Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit,  QMessageBox
 from my_socket import My_socket
 from threading import Thread
 import time
 
 import sys, time
 
+speed_pawn = 600
 black_pawns = [0, 1]
 
 black_cell = [0] * 8
@@ -54,11 +55,22 @@ class Window(QMainWindow):
     # pawn_position = ()
     "это класс окна"
 
+    global speed_pawn
+
     def __init__(self, client):
         super().__init__()
         # self.step_game = step_listen
         self.client = client
         self.step_game = self.client.step_game
+        self.color1 = ""
+        self.color2 = ""
+        if self.step_game == 0:
+            self.color1 = "white"
+            self.color2 = "black"
+        elif self.step_game == 1:
+            self.color1 = "black"
+            self.color2 = "white"
+
         self.mythread = MyThread(self.client)
         self.mythread.start()
         self.mythread.mysignal_game.connect(self.pawn_move, QtCore.Qt.QueuedConnection)
@@ -68,7 +80,7 @@ class Window(QMainWindow):
         self.board = QtWidgets.QLabel(self)
         self.board.setGeometry(QtCore.QRect(1, 2, 800, 800))
         self.board.setText("")
-        self.board.setPixmap(QtGui.QPixmap("images/board.jpg"))
+        self.board.setPixmap(QtGui.QPixmap("images/board.png"))
         self.board.setScaledContents(True)
 
         # Для каждой черной клетки доски создаем экземпляр класса Пешки
@@ -86,27 +98,27 @@ class Window(QMainWindow):
 
         # задаем цвета пешкам в начальном положении при старте игры , остальные пешки невидимы
         for j in [1, 3, 5, 7]:
-            self.pawn[0][j].change_color("black")
+            self.pawn[0][j].change_color(self.color2)
             self.pawn[0][j].x = j
             self.pawn[0][j].y = 0
 
-            self.pawn[1][j - 1].change_color("black")
+            self.pawn[1][j - 1].change_color(self.color2)
             self.pawn[1][j - 1].x = j - 1
             self.pawn[1][j - 1].y = 1
 
-            self.pawn[2][j].change_color("black")
+            self.pawn[2][j].change_color(self.color2)  # black
             self.pawn[2][j].x = j
             self.pawn[2][j].y = 2
 
-            self.pawn[5][j - 1].change_color("white")
+            self.pawn[5][j - 1].change_color(self.color1) # white
             self.pawn[5][j - 1].x = j - 1
             self.pawn[5][j - 1].y = 5
 
-            self.pawn[6][j].change_color("white")
+            self.pawn[6][j].change_color(self.color1)
             self.pawn[6][j].x = j
             self.pawn[6][j].y = 6
 
-            self.pawn[7][j - 1].change_color("white")
+            self.pawn[7][j - 1].change_color(self.color1)
             self.pawn[7][j - 1].x = j - 1
             self.pawn[7][j - 1].y = 7
 
@@ -121,12 +133,22 @@ class Window(QMainWindow):
                 self.pawn_label[i][j].setText("")
                 self.pawn_label[i][j].setGeometry(
                     QtCore.QRect(40 + j * 90, 40 + i * 90, 90, 90))
-                if pawn_position[i][j] == True and self.pawn[i][j].color == "white":
-                    self.pawn_label[i][j].setPixmap(QtGui.QPixmap("images/pawn_white.png"))
-                    self.pawn_label[i][j].setScaledContents(True)
-                elif pawn_position[i][j] == True and self.pawn[i][j].color == "black":
-                    self.pawn_label[i][j].setPixmap(QtGui.QPixmap("images/pawn_black.png"))
-                    self.pawn_label[i][j].setScaledContents(True)
+                if pawn_position[i][j] == True and self.pawn[i][j].color == self.color1:
+                    if self.color1 == "white":
+                        self.pawn_label[i][j].setPixmap(QtGui.QPixmap("images/pawn_white.png"))
+                        self.pawn_label[i][j].setScaledContents(True)
+                    elif self.color1 == "black":
+                        self.pawn_label[i][j].setPixmap(QtGui.QPixmap("images/pawn_black.png"))
+                        self.pawn_label[i][j].setScaledContents(True)
+                elif pawn_position[i][j] == True and self.pawn[i][j].color == self.color2:
+                    # self.pawn_label[i][j].setPixmap(QtGui.QPixmap("images/pawn_black.png"))
+                    # self.pawn_label[i][j].setScaledContents(True)
+                    if self.color2 == "white":
+                        self.pawn_label[i][j].setPixmap(QtGui.QPixmap("images/pawn_white.png"))
+                        self.pawn_label[i][j].setScaledContents(True)
+                    elif self.color2 == "black":
+                        self.pawn_label[i][j].setPixmap(QtGui.QPixmap("images/pawn_black.png"))
+                        self.pawn_label[i][j].setScaledContents(True)
             print(self.pawn_label[3][4])
         self.cell_label = QtWidgets.QLabel(self)
         self.cell_label.setGeometry(QtCore.QRect(40, 40, 90, 90))
@@ -165,7 +187,12 @@ class Window(QMainWindow):
 
     # функция передвижения изображения пешки
     def pawn_move(self, cell_x, cell_y, cell_x_new, cell_y_new, color):
+        global speed_pawn
 
+        if color == "E":
+            self.close()
+
+        print("...moving...")
 
         self.pawn_highlight(cell_x, cell_y, False)
 
@@ -174,6 +201,50 @@ class Window(QMainWindow):
         if color == "b":
             self.pawn[cell_y_new][cell_x_new].color = "black"
 
+        print("step to", cell_x, cell_y, cell_x_new, cell_y_new, color)
+
+        if (self.clicked == True):
+            self.clicked = False
+        self.pawn_label[cell_y][cell_x].setPixmap(QtGui.QPixmap(""))
+        if color == "w":
+            self.pawn_label[cell_y_new][cell_x_new].setPixmap(QtGui.QPixmap("images/pawn_white.png"))
+            self.step = 1
+        elif color == "b":
+            self.pawn_label[cell_y_new][cell_x_new].setPixmap(QtGui.QPixmap("images/pawn_black.png"))
+            self.step = 0
+        self.pawn_label[cell_y_new][cell_x_new].setScaledContents(True)
+        self.animation = Qt.QPropertyAnimation(self.pawn_label[cell_y_new][cell_x_new], b"geometry")
+        self.animation.setDuration(int(128 * 1000/speed_pawn))
+        self.animation.setStartValue(Qt.QRect(cell_x * 90 + 40, cell_y * 90 + 40, 90, 90))
+
+        self.animation.setEndValue(Qt.QRect(cell_x_new * 90 + 40, cell_y_new * 90 + 40, 90, 90))
+
+        if self.step == self.step_game:
+            if abs(cell_x - cell_x_new) == 2:
+                self.pawn_label[cell_y + int((cell_y_new - cell_y) / 2)][
+                    cell_x + int((cell_x_new - cell_x) / 2)].setPixmap(QtGui.QPixmap(""))
+                pawn_position[cell_y + int((cell_y_new - cell_y) / 2)][cell_x + int((cell_x_new - cell_x) / 2)] = False
+                self.pawn[cell_y + int((cell_y_new - cell_y) / 2)][cell_x + int((cell_x_new - cell_x) / 2)].color = None
+
+        self.animation.start()
+        pawn_position[cell_y][cell_x] = False
+        pawn_position[cell_y_new][cell_x_new] = True
+        self.pawn[cell_y][cell_x].color = None
+        self.clicked = False
+        # if (self.step == 1):
+        #     self.step = 0
+        # if (self.step == 0):
+        #     self.step = 1
+        print("now step is", self.step)
+
+    def pawn_move2(self, cell_x, cell_y, cell_x_new, cell_y_new, color):
+
+        self.pawn_highlight(cell_x, cell_y, False)
+
+        if color == "w":
+            self.pawn[cell_y_new][cell_x_new].color = "white"
+        if color == "b":
+            self.pawn[cell_y_new][cell_x_new].color = "black"
 
         print("step to", cell_x, cell_y, cell_x_new, cell_y_new, color)
 
@@ -194,13 +265,11 @@ class Window(QMainWindow):
         self.animation.setEndValue(Qt.QRect(cell_x_new * 90 + 40, cell_y_new * 90 + 40, 90, 90))
 
         if self.step == self.step_game:
-            if abs(cell_x - cell_x_new) == 2 :
-                self.pawn_label[cell_y + int((cell_y_new - cell_y)/2)][cell_x + int((cell_x_new - cell_x)/2)].setPixmap(QtGui.QPixmap(""))
-                pawn_position[cell_y + int((cell_y_new - cell_y)/2)][cell_x + int((cell_x_new - cell_x)/2)] = False
-                self.pawn[cell_y + int((cell_y_new - cell_y)/2)][cell_x + int((cell_x_new - cell_x)/2)].color = None
-
-
-
+            if abs(cell_x - cell_x_new) == 2:
+                self.pawn_label[cell_y + int((cell_y_new - cell_y) / 2)][
+                    cell_x + int((cell_x_new - cell_x) / 2)].setPixmap(QtGui.QPixmap(""))
+                pawn_position[cell_y + int((cell_y_new - cell_y) / 2)][cell_x + int((cell_x_new - cell_x) / 2)] = False
+                self.pawn[cell_y + int((cell_y_new - cell_y) / 2)][cell_x + int((cell_x_new - cell_x) / 2)].color = None
 
         self.animation.start()
         pawn_position[cell_y][cell_x] = False
@@ -213,7 +282,6 @@ class Window(QMainWindow):
         #     self.step = 1
         print("now step is", self.step)
 
-
     step = 0  # первые ходят белые
 
     clicked = False
@@ -224,11 +292,13 @@ class Window(QMainWindow):
 
             if self.clicked == False:
 
+                # print("the first")
+
                 self.point_press = event.pos()
 
                 self.cell_x = (self.point_press.x() - 40) // 90
                 self.cell_y = (self.point_press.y() - 40) // 90
-                print("1 click", self.cell_y, self.cell_x)
+                # print("1 click", self.cell_y, self.cell_x)
                 if self.in_board(self.cell_x, self.cell_y):
                     if pawn_position[self.cell_y][self.cell_x] == True:
                         if self.step == 0 and self.pawn[self.cell_y][self.cell_x].color == "white":
@@ -236,9 +306,13 @@ class Window(QMainWindow):
                             self.clicked = True
 
             elif self.clicked == True:
+
+                # print("the second")
                 self.point_press = event.pos()
                 self.cell_x_new = (self.point_press.x() - 40) // 90
                 self.cell_y_new = (self.point_press.y() - 40) // 90
+
+                # print("2 click", self.cell_y, self.cell_x)
 
                 if self.in_board(self.cell_x_new, self.cell_y_new):
 
@@ -292,12 +366,17 @@ class Window(QMainWindow):
                         self.pawn_highlight(self.cell_x, self.cell_y, False)
                         self.clicked = False
         elif self.step_game == 1:
+            print("clicked", self.clicked)
             if self.clicked == False:
+
+                print("first")
+
 
                 self.point_press = event.pos()
 
                 self.cell_x = (self.point_press.x() - 40) // 90
                 self.cell_y = (self.point_press.y() - 40) // 90
+                # print("choose ", self.cell_y, self.cell_x)
                 print("1 click", self.cell_y, self.cell_x)
                 if self.in_board(self.cell_x, self.cell_y):
                     if pawn_position[self.cell_y][self.cell_x] == True:
@@ -305,18 +384,27 @@ class Window(QMainWindow):
                             self.pawn_highlight(self.cell_x, self.cell_y, True)
                             self.clicked = True
             elif self.clicked == True:
+
+                print("second")
+
                 self.point_press = event.pos()
                 self.cell_x_new = (self.point_press.x() - 40) // 90
                 self.cell_y_new = (self.point_press.y() - 40) // 90
+                print("step ", self.cell_y_new, self.cell_x_new)
 
                 if self.in_board(self.cell_x_new, self.cell_y_new):
 
                     if pawn_position[self.cell_y_new][self.cell_x_new] == False and black_cell[self.cell_y_new][
                         self.cell_x_new] == 1:
 
+                        print("success 1")
+
                         if self.step == 1:
-                            if (self.cell_y_new == self.cell_y + 1) and (
+                            print("success 2")
+
+                            if (self.cell_y_new == self.cell_y - 1) and (
                                     self.cell_x_new == self.cell_x - 1 or self.cell_x_new == self.cell_x + 1):
+                                print("success 3-1")
                                 pawn_position[self.cell_y_new][self.cell_x_new] = True
                                 self.pawn_highlight(self.cell_x, self.cell_y, False)
                                 self.pawn_move(self.cell_x, self.cell_y, self.cell_x_new, self.cell_y_new, "b")
@@ -329,6 +417,7 @@ class Window(QMainWindow):
                                     f"G{self.cell_x}{self.cell_y}{self.cell_x_new}{self.cell_y_new}b".encode("utf-8"))
                                 self.step = 0
                             if self.eating_possibility(self.cell_x, self.cell_y, self.cell_x_new, self.cell_y_new):
+                                print("success 3-2")
                                 pawn_position[self.cell_y_new][self.cell_x_new] = True
                                 self.pawn_highlight(self.cell_x, self.cell_y, False)
                                 self.pawn_move(self.cell_x, self.cell_y, self.cell_x_new, self.cell_y_new, "b")
@@ -360,7 +449,7 @@ class Client(My_socket):
         super(Client, self).__init__()
 
     def set_up(self):
-        self.connect(("127.0.0.1", 54312))
+        self.connect(("127.0.0.1", 54325))
         listen_thread = Thread(target=self.listen_socket)
         listen_thread.start()
         listen_thread.join()
@@ -383,6 +472,7 @@ class Client(My_socket):
                 break
 
 
+
 class MyThread(QtCore.QThread):
     mysignal_game = QtCore.pyqtSignal(int, int, int, int, str)
 
@@ -396,32 +486,83 @@ class MyThread(QtCore.QThread):
             data = self.client.recv(2048)
 
             self.data_1 = list(data.decode("utf-8"))
+            print(self.data_1)
             if (self.data_1[0] == "G"):
-                self.mysignal_game.emit(int(self.data_1[1]), int(self.data_1[2]), int(self.data_1[3]),
-                                        int(self.data_1[4]), self.data_1[5])
+                self.mysignal_game.emit(7 - int(self.data_1[1]), 7 - int(self.data_1[2]), 7 - int(self.data_1[3]),
+                                        7 - int(self.data_1[4]), self.data_1[5])
 
 
 class Menu(QMainWindow):
+    signal_search = QtCore.pyqtSignal()
+
+    speed = 0
+    global speed_pawn
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Checkers")
         self.setFixedSize(400, 300)
 
         self.label = QtWidgets.QLabel(self)
-        self.label.move(150, 50)
-        self.label.resize(200, 50)
+        self.label.move(150, 10)
+        self.label.resize(200, 150)
         self.label.setText("ШАШКИ")
         self.label.setStyleSheet("QLabel{font-size: 18pt}")
 
         self.icon = QtGui.QIcon("images/pawn_white.png")
         self.btn = QtWidgets.QPushButton(self)
-        self.btn.move(100, 150)
+        self.btn.move(100, 200)
         self.btn.setText("Искать игру")
         self.btn.setIcon(self.icon)
         self.btn.setFixedWidth(200)
         self.btn.clicked.connect(self.search_game)
 
+        self.textbox = QtWidgets.QLineEdit(self)
+        self.textbox.move(150, 100)
+        self.textbox.resize(100, 40)
+
+        self.button = QtWidgets.QPushButton('Ввести скорость', self)
+        self.button.resize(150,30)
+        self.button.move(125, 150)
+
+        self.label_speed = QtWidgets.QLabel(self)
+        self.label_speed.move(125, 250)
+        self.label_speed.resize(200, 50)
+
+
+        self.button.clicked.connect(self.on_click)
+        self.show()
+
+    def on_click(self):
+        global speed_pawn
+
+        textboxValue = self.textbox.text()
+        if self.textbox.text().isdigit():
+            if int(self.textbox.text()) >= 50 and int(self.textbox.text()) <= 1000:
+                self.speed = int(self.textbox.text())
+                speed_pawn = self.speed
+
+                self.label_speed.setText(f"скорость {self.speed} пикс/сек")
+            elif int(self.textbox.text()) < 50 or int(self.textbox.text()) > 1000:
+                QtWidgets.QMessageBox.question(self, 'Ошибка', "Число должно быть от 50 до 1000", QMessageBox.Ok, QMessageBox.Ok)
+                self.textbox.setText("")
+
+            # QtWidgets.QMessageBox.question(self, 'Введено', textboxValue, QMessageBox.Ok, QMessageBox.Ok)
+        elif self.textbox.text().isdigit() == False:
+            QtWidgets.QMessageBox.question(self, 'Ошибка', "Это не число !", QMessageBox.Ok, QMessageBox.Ok)
+            self.textbox.setText("")
+        # self.speed = int(self.textbox.text())
+
+
+
+
+
+    def print_search(self):
+        self.label.setText("Поиск игры")
+
     def search_game(self):
+        # self.signal_search.emit()
+        # self.signal_search.connect(self.print_search, QtCore.Qt.QueuedConnection)
         self.btn.close()
         self.label.setText("Поиск игры")
         self.client = Client()
@@ -436,12 +577,15 @@ class Menu(QMainWindow):
         self.window = Window(self.client)
         self.window.show()
         self.close()
+        self.client.close()
 
 
 def application():
     app = QApplication(sys.argv)
     menu = Menu()
     menu.show()
+
+
     sys.exit(app.exec_())
 
 
